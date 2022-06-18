@@ -47,6 +47,8 @@ public class TestTtsController {
         JSONObject authInfo = ttsService.serviceAuth(username, password);
         JSONObject session = ttsService.loginMiAi(authInfo);
         JSONArray devices = ttsService.getDevice(session);
-        return AjaxResult.success(ttsService.say(session, "我是刘元博"));
+        System.out.println(devices);
+        session.put("deviceId", devices.getJSONObject(0).getString("deviceID"));
+        return AjaxResult.success(ttsService.say(session, "专门为你选的"));
     }
 }

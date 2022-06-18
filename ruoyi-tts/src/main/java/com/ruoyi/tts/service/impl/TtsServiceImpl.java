@@ -96,7 +96,7 @@ public class TtsServiceImpl implements TtsService {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("text", text);
         String message = URLEncoder.DEFAULT.encode(jsonObject.toJSONString(), StandardCharsets.UTF_8);
-        String url = StrUtil.format("https://api.mina.mi.com/remote/ubus?deviceId=32238ec9-8c9d-438b-b073-f74f39b3a0cf&message={}&method=text_to_speech&path=mibrain", message);
+        String url = StrUtil.format("https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method=text_to_speech&path=mibrain", session.getString("deviceId"), message);
 
         HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session));
         TtsResult ttsResult = restTemplate.postForObject(URI.create(url), request, TtsResult.class);
