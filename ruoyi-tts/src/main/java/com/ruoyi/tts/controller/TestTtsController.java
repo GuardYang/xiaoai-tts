@@ -1,5 +1,6 @@
 package com.ruoyi.tts.controller;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.tts.service.TtsService;
@@ -29,7 +30,23 @@ public class TestTtsController {
     @RequestMapping("/loginMiAi")
     public AjaxResult loginMiAi(String username, String password) {
         JSONObject authInfo = ttsService.serviceAuth(username, password);
-        String url = ttsService.loginMiAi(authInfo);
-        return AjaxResult.success("操作成功", url);
+        JSONObject session = ttsService.loginMiAi(authInfo);
+        return AjaxResult.success(session);
+    }
+
+    @RequestMapping("/getDevice")
+    public AjaxResult getDevice(String username, String password) {
+        JSONObject authInfo = ttsService.serviceAuth(username, password);
+        JSONObject session = ttsService.loginMiAi(authInfo);
+        JSONArray devices = ttsService.getDevice(session);
+        return AjaxResult.success(devices);
+    }
+
+    @RequestMapping("/say")
+    public AjaxResult say(String username, String password) {
+        JSONObject authInfo = ttsService.serviceAuth(username, password);
+        JSONObject session = ttsService.loginMiAi(authInfo);
+        JSONArray devices = ttsService.getDevice(session);
+        return AjaxResult.success(ttsService.say(session, "我是刘元博"));
     }
 }
