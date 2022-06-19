@@ -8,6 +8,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.tts.dto.AuthInfo;
+import com.ruoyi.tts.dto.Session;
 import com.ruoyi.tts.dto.TtsResult;
 import com.ruoyi.tts.service.TtsService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,7 @@ public class TtsServiceImpl implements TtsService {
     private RestTemplate restTemplate;
 
     @Override
-    public JSONObject serviceAuth(String username, String password) {
+    public AuthInfo serviceAuth(String username, String password) {
         String url = "https://account.xiaomi.com/pass/serviceLoginAuth2";
 
         HttpHeaders headers = new HttpHeaders();
@@ -49,32 +51,28 @@ public class TtsServiceImpl implements TtsService {
         String result = restTemplate.postForObject(url, request, String.class);
         assert result != null;
         result = result.replace("&&&START&&&", "");
-        return JSON.parseObject(result);
+
+        log.info("登录结果：{}", JSON.parseObject(result, String.class));
+
+        AuthInfo authInfo = JSON.parseObject(result, AuthInfo.class);
+        if (authInfo.getCode() != 0) {
+            throw new ServiceException(authInfo.getDescription());
+        }
+        return authInfo;
     }
 
     @Override
-    public JSONObject loginMiAi(JSONObject authInfo) {
-        String nonce = authInfo.getString("nonce");
-        String ssecurity = authInfo.getString("ssecurity");
-        String clientSign = genClientSign(nonce, ssecurity);
-
-        String location = authInfo.getString("location");
-        String url = location + "&clientSign=" + clientSign;
+    public Session loginMiAi(AuthInfo authInfo) {
+        String clientSign = genClientSign(authInfo.getNonce(), authInfo.getSsecurity());
+        String url = authInfo.getLocation() + "&clientSign=" + clientSign;
 
         ResponseEntity<String> response = restTemplate.getForEntity(URI.create(url), String.class);
-        HttpHeaders headers = response.getHeaders();
-        List<String> cookieList = headers.get(HttpHeaders.SET_COOKIE);
-        JSONObject session = new JSONObject();
-        session.put("cookieList", cookieList);
-//        for (String cookie : cookieList) {
-//            String key = cookie.split("=")[0];
-//            session.put(key, cookie.substring(key.length() + 1).split(";")[0]);
-//        }
-        return session;
+        List<String> cookieList = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+        return new Session().setCookieList(cookieList);
     }
 
     @Override
-    public JSONArray getDevice(JSONObject session) {
+    public JSONArray getDevice(Session session) {
         String url = "https://api.mina.mi.com/admin/v2/device_list";
 
         HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session));
@@ -92,11 +90,11 @@ public class TtsServiceImpl implements TtsService {
 
 
     @Override
-    public JSONObject say(JSONObject session, String text) {
+    public JSONObject say(Session session, String text) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("text", text);
         String message = URLEncoder.DEFAULT.encode(jsonObject.toJSONString(), StandardCharsets.UTF_8);
-        String url = StrUtil.format("https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method=text_to_speech&path=mibrain", session.getString("deviceId"), message);
+        String url = StrUtil.format("https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method=text_to_speech&path=mibrain", session.getDeviceId(), message);
 
         HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session));
         TtsResult ttsResult = restTemplate.postForObject(URI.create(url), request, TtsResult.class);
@@ -107,11 +105,10 @@ public class TtsServiceImpl implements TtsService {
         return JSON.parseObject(JSON.toJSONString(ttsResult.getData()));
     }
 
-    private HttpHeaders getHeaders(JSONObject session) {
+    private HttpHeaders getHeaders(Session session) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        List<String> cookieList = session.getList("cookieList", String.class);
-        headers.put(HttpHeaders.COOKIE, cookieList);
+        headers.put(HttpHeaders.COOKIE, session.getCookieList());
         return headers;
     }
 

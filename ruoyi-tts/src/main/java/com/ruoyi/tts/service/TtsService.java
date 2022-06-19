@@ -2,6 +2,8 @@ package com.ruoyi.tts.service;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.ruoyi.tts.dto.AuthInfo;
+import com.ruoyi.tts.dto.Session;
 
 public interface TtsService {
     /**
@@ -11,7 +13,7 @@ public interface TtsService {
      * @param password
      * @return
      */
-    JSONObject serviceAuth(String username, String password);
+    AuthInfo serviceAuth(String username, String password);
 
     /**
      * 获取身份凭证
@@ -19,7 +21,7 @@ public interface TtsService {
      * @param authInfo
      * @return
      */
-    JSONObject loginMiAi(JSONObject authInfo);
+    Session loginMiAi(AuthInfo authInfo);
 
     /**
      * 获取在线设备列表
@@ -27,7 +29,7 @@ public interface TtsService {
      * @param session
      * @return
      */
-    JSONArray getDevice(JSONObject session);
+    JSONArray getDevice(Session session);
 
     /**
      * 朗读文本
@@ -36,5 +38,5 @@ public interface TtsService {
      * @param text
      * @return
      */
-    JSONObject say(JSONObject session, String text);
+    JSONObject say(Session session, String text);
 }
