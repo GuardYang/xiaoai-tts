@@ -68,6 +68,8 @@ public class Constants
      * 登录用户 redis key
      */
     public static final String LOGIN_TOKEN_KEY = "login_tokens:";
+    public static final String TTS_TOKEN_KEY = "tts_tokens:";
+    public static final String TTS_SHARE_TOKEN_KEY = "tts_share_tokens:";
 
     /**
      * 防重提交 redis key
