@@ -40,7 +40,7 @@ public class TtsServiceImpl implements TtsService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("_json", true);
+        body.add("_json", "true");
         body.add("sid", "micoapi");
         body.add("user", username);
         body.add("hash", DigestUtil.md5Hex(password).toUpperCase());
@@ -65,7 +65,7 @@ public class TtsServiceImpl implements TtsService {
     public Session loginMiAi(AuthInfo authInfo) {
         String clientSign = genClientSign(authInfo.getNonce(), authInfo.getSsecurity());
         String url = authInfo.getLocation() + "&clientSign=" + clientSign;
-
+        log.info(URI.create(url).toString());
         ResponseEntity<String> response = restTemplate.getForEntity(URI.create(url), String.class);
         List<String> cookieList = response.getHeaders().get(HttpHeaders.SET_COOKIE);
         return new Session().setCookieList(cookieList);
