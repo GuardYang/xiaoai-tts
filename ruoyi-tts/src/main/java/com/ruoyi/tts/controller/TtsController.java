@@ -68,6 +68,12 @@ public class TtsController {
         return AjaxResult.success(jsonObject);
     }
 
+    @RequestMapping("/getDevices")
+    public AjaxResult getDevices() {
+        JSONArray devices = ttsService.getDevice(getSession());
+        return AjaxResult.success(devices);
+    }
+
     private Session getSession() {
         String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
         Session session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
