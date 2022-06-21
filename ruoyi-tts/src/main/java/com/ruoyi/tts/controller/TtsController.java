@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,17 +117,24 @@ public class TtsController {
     }
 
     private Session getSession() {
-        Session session = null;
-        String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
-        if (StrUtil.isNotBlank(token)) {
-            session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
-        }
-        token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        Session session;
+        HttpServletRequest request = ServletUtils.getRequest();
+        String token = request.getParameter(Constants.TOKEN);
         if (StrUtil.isNotBlank(token)) {
             session = redisCache.getCacheObject(Constants.TTS_SHARE_TOKEN_KEY + token);
-        }
-        if (session == null) {
-            throw new ServiceException("token过期", 401);
+            if (session == null) {
+                throw new ServiceException("token过期", 500);
+            }
+        } else {
+            token = request.getHeader(Constants.TOKEN);
+            if (StrUtil.isNotBlank(token)) {
+                session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
+                if (session == null) {
+                    throw new ServiceException("token过期", 401);
+                }
+            } else {
+                throw new ServiceException("token不存在", 500);
+            }
         }
         return session;
     }
