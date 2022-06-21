@@ -1,6 +1,7 @@
 package com.ruoyi.tts.controller;
 
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.constant.Constants;
@@ -68,14 +69,64 @@ public class TtsController {
         return AjaxResult.success(jsonObject);
     }
 
-    @RequestMapping("/getDevices")
-    public AjaxResult getDevices() {
-        JSONArray devices = ttsService.getDevice(getSession());
-        return AjaxResult.success(devices);
+    @RequestMapping("/getDevice")
+    public AjaxResult getDevice() {
+        JSONArray result = ttsService.getDevice(getSession());
+        return AjaxResult.success(result);
+    }
+
+    // ————————————————  媒体控制  ————————————————
+
+    @RequestMapping("/setVolume")
+    public AjaxResult setVolume(Integer volume) {
+        JSONObject result = ttsService.setVolume(getSession(), volume);
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/getVolume")
+    public AjaxResult getVolume() {
+        JSONObject result = ttsService.getVolume(getSession());
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/play")
+    public AjaxResult play() {
+        JSONObject result = ttsService.play(getSession());
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/pause")
+    public AjaxResult pause() {
+        JSONObject result = ttsService.pause(getSession());
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/togglePlayState")
+    public AjaxResult togglePlayState() {
+        JSONObject result = ttsService.togglePlayState(getSession());
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/prev")
+    public AjaxResult prev() {
+        JSONObject result = ttsService.prev(getSession());
+        return AjaxResult.success(result);
+    }
+
+    @RequestMapping("/next")
+    public AjaxResult next() {
+        JSONObject result = ttsService.next(getSession());
+        return AjaxResult.success(result);
     }
 
     private Session getSession() {
         String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
+        if (StrUtil.isEmpty(token)) {
+            token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        }
+        if (StrUtil.isEmpty(token)) {
+            throw new ServiceException("token不存在", 401);
+        }
         Session session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
         if (session == null) {
             throw new ServiceException("token过期", 401);

@@ -1,7 +1,13 @@
 package com.ruoyi.tts.controller;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
+import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.redis.RedisCache;
+import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.ServletUtils;
 import com.ruoyi.tts.dto.AuthInfo;
 import com.ruoyi.tts.dto.Session;
 import com.ruoyi.tts.service.TtsService;
@@ -16,10 +22,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestTtsController {
     @Autowired
     private TtsService ttsService;
+    @Autowired
+    private RedisCache redisCache;
+    @RequestMapping("/setVolume")
+    public AjaxResult setVolume(Integer volume) {
+        JSONObject jsonObject = ttsService.setVolume(getSession(),volume);
+        return AjaxResult.success(jsonObject);
+    }
 
-    @RequestMapping("/hello")
-    public AjaxResult hello() {
-        return AjaxResult.success();
+    @RequestMapping("/getVolume")
+    public AjaxResult getVolume() {
+        JSONObject jsonObject = ttsService.getVolume(getSession());
+        return AjaxResult.success(jsonObject);
     }
 
     @RequestMapping("/serviceAuth")
@@ -51,5 +65,19 @@ public class TestTtsController {
         System.out.println(devices);
         session.setDeviceId(devices.getJSONObject(0).getString("deviceID"));
         return AjaxResult.success(ttsService.say(session, "专门为你选的"));
+    }
+    private Session getSession() {
+        String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
+        if (StrUtil.isEmpty(token)) {
+            token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        }
+        if (StrUtil.isEmpty(token)) {
+            throw new ServiceException("token不存在", 401);
+        }
+        Session session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
+        if (session == null) {
+            throw new ServiceException("token过期", 401);
+        }
+        return session;
     }
 }

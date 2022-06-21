@@ -75,7 +75,7 @@ public class TtsServiceImpl implements TtsService {
     public JSONArray getDevice(Session session) {
         String url = "https://api.mina.mi.com/admin/v2/device_list";
 
-        HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session));
+        HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session.getCookieList()));
         ResponseEntity<TtsResult> response = restTemplate.exchange(url, HttpMethod.GET, request, TtsResult.class);
         TtsResult ttsResult = response.getBody();
         assert ttsResult != null;
@@ -91,24 +91,96 @@ public class TtsServiceImpl implements TtsService {
 
     @Override
     public JSONObject say(Session session, String text) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("text", text);
-        String message = URLEncoder.DEFAULT.encode(jsonObject.toJSONString(), StandardCharsets.UTF_8);
-        String url = StrUtil.format("https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method=text_to_speech&path=mibrain", session.getDeviceId(), message);
+        JSONObject message = new JSONObject();
+        message.put("text", text);
+        String url = StrUtil.format(
+                "https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method=text_to_speech&path=mibrain",
+                session.getDeviceId(),
+                URLEncoder.DEFAULT.encode(message.toJSONString(), StandardCharsets.UTF_8));
 
-        HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session));
+        HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session.getCookieList()));
         TtsResult ttsResult = restTemplate.postForObject(URI.create(url), request, TtsResult.class);
-        assert ttsResult != null;
-        if (ttsResult.getCode() != 0) {
-            throw new ServiceException(ttsResult.getMessage());
-        }
-        return JSON.parseObject(JSON.toJSONString(ttsResult.getData()));
+        return ttsResult2Json(ttsResult);
     }
 
-    private HttpHeaders getHeaders(Session session) {
+    @Override
+    public JSONObject setVolume(Session session, Integer volume) {
+        JSONObject message = new JSONObject();
+        message.put("volume", volume);
+        return mediaplayer(session, message, "player_set_volume");
+    }
+
+    @Override
+    public JSONObject getVolume(Session session) {
+        JSONObject message = new JSONObject();
+        return mediaplayer(session, message, "player_get_play_status");
+    }
+
+    @Override
+    public JSONObject play(Session session) {
+        JSONObject message = new JSONObject();
+        message.put("action", "play");
+        return mediaplayer(session, message, "player_play_operation");
+    }
+
+    @Override
+    public JSONObject pause(Session session) {
+        JSONObject message = new JSONObject();
+        message.put("action", "pause");
+        return mediaplayer(session, message, "player_play_operation");
+    }
+
+    @Override
+    public JSONObject togglePlayState(Session session) {
+        JSONObject message = new JSONObject();
+        message.put("action", "toggle");
+        return mediaplayer(session, message, "player_play_operation");
+    }
+
+    @Override
+    public JSONObject prev(Session session) {
+        JSONObject message = new JSONObject();
+        message.put("action", "prev");
+        return mediaplayer(session, message, "player_play_operation");
+    }
+
+    @Override
+    public JSONObject next(Session session) {
+        JSONObject message = new JSONObject();
+        message.put("action", "next");
+        return mediaplayer(session, message, "player_play_operation");
+    }
+
+    @Override
+    public JSONObject getSongInfo(String songId) {
+        return null;
+    }
+
+    @Override
+    public JSONObject getMyPlaylist(String listId) {
+        return null;
+    }
+
+    @Override
+    public JSONObject playUrl(String url) {
+        return null;
+    }
+
+    private JSONObject mediaplayer(Session session, JSONObject message, String method) {
+        String url = StrUtil.format(
+                "https://api.mina.mi.com/remote/ubus?deviceId={}&message={}&method={}&path=mediaplayer",
+                session.getDeviceId(),
+                URLEncoder.DEFAULT.encode(message.toJSONString(), StandardCharsets.UTF_8),
+                method);
+        HttpEntity<Object> request = new HttpEntity<>(null, getHeaders(session.getCookieList()));
+        TtsResult ttsResult = restTemplate.postForObject(URI.create(url), request, TtsResult.class);
+        return ttsResult2Json(ttsResult);
+    }
+
+    private HttpHeaders getHeaders(List<String> cookieList) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.put(HttpHeaders.COOKIE, session.getCookieList());
+        headers.put(HttpHeaders.COOKIE, cookieList);
         return headers;
     }
 
@@ -116,5 +188,15 @@ public class TtsServiceImpl implements TtsService {
         String str = StrUtil.format("nonce={}&{}", nonce, ssecurity);
         String hashStr = Base64.encode(DigestUtil.sha1(str));
         return URLEncoder.DEFAULT.encode(hashStr, StandardCharsets.UTF_8);
+    }
+
+    private JSONObject ttsResult2Json(TtsResult ttsResult) {
+        if (ttsResult == null) {
+            throw new ServiceException("小爱音箱接口返回异常");
+        }
+        if (ttsResult.getCode() != 0) {
+            throw new ServiceException(ttsResult.getMessage());
+        }
+        return JSON.parseObject(JSON.toJSONString(ttsResult.getData()));
     }
 }
