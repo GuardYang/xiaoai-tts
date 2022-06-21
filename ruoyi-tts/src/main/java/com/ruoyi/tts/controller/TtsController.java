@@ -62,15 +62,6 @@ public class TtsController {
         return AjaxResult.success().put(Constants.TOKEN, token);
     }
 
-    @RequestMapping("/praise")
-    public AjaxResult praise(@RequestBody PraiseParam praiseParam) {
-        JSONObject jsonObject = ttsService.say(getSession(), praiseParam.getText());
-        if (jsonObject.getInteger("code") != 0) {
-            return AjaxResult.error("我猜你没输入内容");
-        }
-        return AjaxResult.success(jsonObject);
-    }
-
     @RequestMapping("/getDevice")
     public AjaxResult getDevice() {
         JSONArray result = ttsService.getDevice(getSession());
