@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @RestController
 @RequestMapping("/tts")
@@ -28,6 +31,7 @@ public class TtsController {
 
     @RequestMapping("/login")
     public AjaxResult login(@RequestBody LoginParam loginParam) {
+        Map<String, Object> result = new HashMap<>();
         AuthInfo authInfo = ttsService.serviceAuth(loginParam.getUsername(), loginParam.getPassword());
         Session session = ttsService.loginMiAi(authInfo);
         JSONArray devices = ttsService.getDevice(session);
@@ -37,7 +41,9 @@ public class TtsController {
         session.setDeviceId(devices.getJSONObject(0).getString("deviceID"));
 
         redisCache.setCacheObject(Constants.TTS_TOKEN_KEY + session.getDeviceId(), session);
-        return AjaxResult.success().put(Constants.TOKEN, session.getDeviceId());
+        result.put(Constants.TOKEN, session.getDeviceId());
+        result.put("deviceId", session.getDeviceId());
+        return AjaxResult.success(result);
     }
 
     @RequestMapping("/say")
@@ -58,11 +64,7 @@ public class TtsController {
 
     @RequestMapping("/praise")
     public AjaxResult praise(@RequestBody PraiseParam praiseParam) {
-        Session session = redisCache.getCacheObject(Constants.TTS_SHARE_TOKEN_KEY + praiseParam.getToken());
-        if (session == null) {
-            return AjaxResult.error("链接已失效");
-        }
-        JSONObject jsonObject = ttsService.say(session, praiseParam.getText());
+        JSONObject jsonObject = ttsService.say(getSession(), praiseParam.getText());
         if (jsonObject.getInteger("code") != 0) {
             return AjaxResult.error("我猜你没输入内容");
         }
@@ -120,14 +122,15 @@ public class TtsController {
     }
 
     private Session getSession() {
-        String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
-        if (StrUtil.isEmpty(token)) {
-            token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        Session session = null;
+        String token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        if (StrUtil.isNotBlank(token)) {
+            session = redisCache.getCacheObject(Constants.TTS_SHARE_TOKEN_KEY + token);
         }
-        if (StrUtil.isEmpty(token)) {
-            throw new ServiceException("token不存在", 401);
+        token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
+        if (StrUtil.isNotBlank(token)) {
+            session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
         }
-        Session session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
         if (session == null) {
             throw new ServiceException("token过期", 401);
         }

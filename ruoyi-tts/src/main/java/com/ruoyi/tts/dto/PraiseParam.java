@@ -4,6 +4,5 @@ import lombok.Data;
 
 @Data
 public class PraiseParam {
-    private String token;
     private String text;
 }
