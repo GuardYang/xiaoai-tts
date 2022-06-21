@@ -9,7 +9,10 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.ServletUtils;
-import com.ruoyi.tts.dto.*;
+import com.ruoyi.tts.dto.AuthInfo;
+import com.ruoyi.tts.dto.LoginParam;
+import com.ruoyi.tts.dto.SayParam;
+import com.ruoyi.tts.dto.Session;
 import com.ruoyi.tts.service.TtsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,13 +117,13 @@ public class TtsController {
 
     private Session getSession() {
         Session session = null;
-        String token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
-        if (StrUtil.isNotBlank(token)) {
-            session = redisCache.getCacheObject(Constants.TTS_SHARE_TOKEN_KEY + token);
-        }
-        token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
+        String token = ServletUtils.getRequest().getHeader(Constants.TOKEN);
         if (StrUtil.isNotBlank(token)) {
             session = redisCache.getCacheObject(Constants.TTS_TOKEN_KEY + token);
+        }
+        token = ServletUtils.getRequest().getParameter(Constants.TOKEN);
+        if (StrUtil.isNotBlank(token)) {
+            session = redisCache.getCacheObject(Constants.TTS_SHARE_TOKEN_KEY + token);
         }
         if (session == null) {
             throw new ServiceException("token过期", 401);
